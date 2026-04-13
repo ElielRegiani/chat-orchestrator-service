@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.11-slim AS base
 
 WORKDIR /app
 
@@ -8,7 +8,22 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY main.py .
+COPY app ./app
+COPY integrations ./integrations
+
+RUN useradd --create-home --uid 1000 --user-group appuser && \
+    chown -R appuser:appuser /app
+
+FROM base AS dev
+USER root
+COPY requirements-dev.txt .
+RUN pip install --no-cache-dir -r requirements-dev.txt && \
+    chown -R appuser:appuser /app
+USER appuser
+
+FROM base AS runtime
+USER appuser
 
 EXPOSE 8000
 
